@@ -99,8 +99,18 @@ class PlacesService:
         :return:
         """
 
+        place_more = Place(
+            latitude=place.latitude,
+            longitude=place.longitude,
+            description=place.description,
+        )
         # при изменении координат – обогащение данных путем получения дополнительной информации от API
-        # todo
+        if location := await LocationClient().get_location(
+            latitude=place.latitude, longitude=place.longitude
+        ):
+            place_more.country = location.alpha2code
+            place_more.city = location.city
+            place_more.locality = location.locality
 
         matched_rows = await self.places_repository.update_model(
             primary_key, **place.dict(exclude_unset=True)
@@ -109,7 +119,19 @@ class PlacesService:
 
         # публикация события для попытки импорта информации
         # по обновленному объекту любимого места в сервисе Countries Informer
-        # todo
+        try:
+            place_data = CountryCityDTO(
+                city=place_more.city,
+                alpha2code=place_more.country,
+            )
+            EventProducer().publish(
+                queue_name=settings.rabbitmq.queue.places_import, body=place_data.json()
+            )
+        except ValidationError:
+            logger.warning(
+                "The message was not well-formed during publishing event.",
+                exc_info=True,
+            )
 
         return matched_rows
 

@@ -16,6 +16,14 @@ class PlaceUpdate(BaseModel):
     description: Optional[str] = Field(None, min_length=3, max_length=255)
 
 
+class Description(BaseModel):
+    """
+    Схема данных для описания места.
+    """
+
+    description: Optional[str] = Field(None, min_length=3, max_length=255)
+
+
 class PlaceResponse(BaseModel):
     """
     Схема для представления данных о списке любимых мест.
